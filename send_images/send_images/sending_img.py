@@ -12,11 +12,12 @@ import time
 import numpy as np
 
 from ros_imgtime_msg.msg import Imagetime
+from detecting_result_msg.msg import Result
 
 
 class ImageThrower(Node):
     def __init__(self, image_path):
-        super().__init__("image_thrower")
+        super().__init__("image_processor")
         self.image_list = self.load_images(image_path)
         self.image_len = len(self.image_list)
         self.count = 0
