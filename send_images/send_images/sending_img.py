@@ -13,17 +13,21 @@ import numpy as np
 
 from ros_imgtime_msg.msg import Imagetime
 from detecting_result_msg.msg import Result
+from .recorder import TimeLogger as TL
+from .recorder import VisualLogger as VL
 
 
 class ImageProcessor(Node):
     def __init__(self, image_path):
         super().__init__("image_processor")
+        self.time_logger = TL()
+        self.visual_logger = VL()
         self.image_list = self.load_images(image_path)
         self.image_len = len(self.image_list)
         self.image_with_timestamp = {}
         self.count = 0
         self.image_publisher = self.create_publisher(Imagetime, "sending_image", 10)
-        self.result_subscriber = self.create_subscriber(Result, "sending_result", self.subscribe_result, 10)
+        self.result_subscriber = self.create_subscription(Result, "sending_result", self.subscribe_result, 10)
         time_period = 10
         for image in self.image_list:
             self.create_timer(time_period, self.time_callback)
@@ -54,11 +58,10 @@ class ImageProcessor(Node):
         bboxes_bytes = result.bboxes
         classes_bytes = result.classes
         scores_bytes = result.scores
-        bboxes = np.frombuffer(bboxes_bytes, np.float32)
+        bboxes = np.frombuffer(bytes(list(bboxes_bytes)), np.float32)
         bboxes = bboxes.reshape(-1, 4)
-        classes = np.frombuffer(classes_bytes, np.int64)
-        scores_bytes = np.frombuffer(scores_bytes, np.float32)
-
+        classes = np.frombuffer(bytes(list(classes_bytes)), np.int64)
+        scores = np.frombuffer(bytes(list(scores_bytes)), np.float32)
 
 
 def main(args=None):
