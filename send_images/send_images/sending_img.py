@@ -18,8 +18,9 @@ from .recorder import VisualLogger as VL
 
 
 class ImageProcessor(Node):
-    def __init__(self, image_path):
+    def __init__(self, image_path, result_path):
         super().__init__("image_processor")
+        self.result_path = result_path
         self.time_logger = TL()
         self.visual_logger = VL()
         self.image_list = self.load_images(image_path)
@@ -45,9 +46,9 @@ class ImageProcessor(Node):
         sending_time = time.time()
         img_time_msg.timestamp = [sending_time]
         self.image_publisher.publish(img_time_msg)
-        self.image_with_timestamp[f"{sending_time}"] = image
+        self.image_with_timestamp[sending_time] = image
         cv2.imshow("publish image", image)
-        cv2.waitKey(2)
+        cv2.waitKey(20)
         self.count += 1
         if self.count > self.image_len-1:
             self.count = 0
@@ -55,6 +56,7 @@ class ImageProcessor(Node):
     def subscribe_result(self, result):
         receive_time = time.time()
         total_time = result.timestamp
+        matched_image = self.get_matched_image(total_time[0])
         bboxes_bytes = result.bboxes
         classes_bytes = result.classes
         scores_bytes = result.scores
@@ -62,12 +64,20 @@ class ImageProcessor(Node):
         bboxes = bboxes.reshape(-1, 4)
         classes = np.frombuffer(bytes(list(classes_bytes)), np.int64)
         scores = np.frombuffer(bytes(list(scores_bytes)), np.float32)
+        self.visual_logger(matched_image, bboxes, classes, scores, self.result_path+"/vis/")
+
+    def get_matched_image(self, timestamp):
+        if timestamp in self.image_with_timestamp.keys():
+            matched_image = self.image_with_timestamp[timestamp]
+            self.image_with_timestamp.pop(timestamp)
+            return matched_image
 
 
 def main(args=None):
     image_path = "/home/ri/lee_ws/kitti_sample"
+    result_path = "/home/ri/lee_ws/ros/src/optimize_model_sub/send_images/result"
     rclpy.init(args=args)
-    node = ImageProcessor(image_path)
+    node = ImageProcessor(image_path, result_path)
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:

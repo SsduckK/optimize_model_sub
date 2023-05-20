@@ -25,9 +25,11 @@ class VisualLogger:
     def draw_annotation(self, image, bboxes, classes, scores):
         src_img = image.copy()
         for box, cls, score in zip(bboxes, classes, scores):
+            score = round(score, 3)
             cls_score = str(cls) + "/" + str(score)
-            dst_img = cv2.rectangle(src_img, (box[0], box[1]), (box[0]+box[2], box[1]+box[3]), (0, 255, 0), 2)
-            dst_img = cv2.putText(dst_img, cls_score, (box[0], box[1] + 10), cv2.FONT_ITALIC, 0.35, (0, 255, 0))
+            dst_img = cv2.rectangle(src_img, (int(box[0]), int(box[1])),
+                                    (int(box[2]), int(box[3])), (0, 255, 0), 2)
+            dst_img = cv2.putText(dst_img, cls_score, (int(box[0]), int(box[1]) + 10), cv2.FONT_ITALIC, 0.35, (0, 255, 0))
         return dst_img
 
     def save_image(self, path, image):
