@@ -3,14 +3,42 @@ import os.path as op
 import numpy as np
 import cv2
 import time
+import csv
+import datetime
 
 
 class TimeLogger:
-    def __call__(self, timestamps, path):
-        if not op.exists(path):
-            os.mkdir(path)
+    def __init__(self, path):
+        self.path = path
+        if not op.exists(self.path):
+            os.mkdir(self.path)
+        self.frames = 1
+        self.time_logs = []
+        self.entry = self.load_entry()
+        self.time_logs.append(self.entry)
 
+    def __call__(self, timestamp):
+        record_data = self.setting_database(self.frames, timestamp)
+        self.time_logs.append(record_data)
+        self.frames += 1
 
+    def load_entry(self):
+        entry = ["frames", "sending", "before model", "after model", "receiving", "|", "send_bmodel", "bmodel_amodel", "amodel_receive"]
+        return entry
+
+    def setting_database(self, frame, timestamp):
+        send_bmodel = timestamp[0] - timestamp[1]
+        bmodel_amodel = timestamp[1] - timestamp[2]
+        amodel_receive = timestamp[2] - timestamp[3]
+        timestamp.insert(0, frame)
+        timestamp.extend(['|', send_bmodel, bmodel_amodel, amodel_receive])
+        return timestamp
+
+    def saving_data(self):
+        with open(self.path + str(datetime.date.today()) + ".csv", 'w') as f:
+            writer = csv.writer(f)
+            for frame in self.time_logs:
+                writer.writerow(frame)
 
 
 class VisualLogger:
@@ -37,7 +65,15 @@ class VisualLogger:
 
 
 def time_test():
-    pass
+    result_path = "/home/ri/lee_ws/ros/src/optimize_model_sub/send_images/result/timestamp/"
+    time_log = TimeLogger(result_path)
+    first_frame = [100, 200, 300, 400]
+    second_frame = [200, 300, 400, 500]
+    third_frame = [300, 400, 500, 600]
+    time_log(first_frame)
+    time_log(second_frame)
+    time_log(third_frame)
+    time_log.saving_data()
 
 
 def visual_test():
@@ -52,3 +88,4 @@ def visual_test():
 
 if __name__ == "__main__":
     visual_test()
+    time_test()
