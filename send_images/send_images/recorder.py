@@ -10,7 +10,7 @@ import json
 
 class TimeLogger:
     def __init__(self, path):
-        self.path = path
+        self.path = op.join(path, "result/timestamp/")
         if not op.exists(self.path):
             os.mkdir(self.path)
         self.frames = 1
@@ -46,36 +46,44 @@ class TimeLogger:
 
 
 class VisualLogger:
-    def __call__(self, image, bboxes, classes, scores, path):
+    def __init__(self, path):
+        self.path = op.join(path, "result/vis/")
         if not op.exists(path):
             os.mkdir(path)
+        self.class_config = self.load_class_config(self.path)
+
+    def __call__(self, image, bboxes, classes, scores):
         drawn_image = self.draw_annotation(image, bboxes, classes, scores)
+        path = self.path
         self.save_image(path, drawn_image)
+
+    def load_class_config(self, path):
+        coco_config = "/home/ri/lee_ws/ros/src/optimize_model_sub/send_images/send_images/coco_categories.json"
+        with open(coco_config) as f:
+            file = json.load(f)
+            return file
 
     def draw_annotation(self, image, bboxes, classes, scores):
         src_img = image.copy()
         for box, cls, score in zip(bboxes, classes, scores):
             score = round(score, 3)
-            converted_cls = self.convert_class(cls)
-            cls_score = str(cls) + "/" + str(score)
+            converted_cls = self.convert_class(self.class_config, cls)
+            cls_score = converted_cls + "/" + str(score)
             dst_img = cv2.rectangle(src_img, (int(box[0]), int(box[1])),
                                     (int(box[2]), int(box[3])), (0, 255, 0), 2)
             dst_img = cv2.putText(dst_img, cls_score, (int(box[0]), int(box[1]) + 10), cv2.FONT_ITALIC, 0.35, (0, 255, 0))
         return dst_img
 
-    def convert_class(self, cls):
-        with open("coco_categories.json") as f:
-            file = json.load(f)
-            index = cls+1
-            return file[index]["supercategory"]
-
+    def convert_class(self, class_config, cls):
+        index = cls+1
+        return class_config[index]["supercategory"]
 
     def save_image(self, path, image):
         cv2.imwrite(path+str(time.time()) + ".png", image)
 
 
 def time_test():
-    result_path = "/home/ri/lee_ws/ros/src/optimize_model_sub/send_images/result/timestamp/"
+    result_path = "/home/ri/lee_ws/ros/src/optimize_model_sub/send_images/"
     time_log = TimeLogger(result_path)
     first_frame = [100, 200, 300, 400]
     second_frame = [200, 300, 400, 500]
@@ -87,15 +95,15 @@ def time_test():
 
 
 def visual_test():
-    vis_log = VisualLogger()
-    result_path = "/home/ri/lee_ws/ros/src/optimize_model_sub/send_images/result/vis/"
+    result_path = "/home/ri/lee_ws/ros/src/optimize_model_sub/send_images/"
+    vis_log = VisualLogger(result_path)
     sample_image = cv2.imread("/home/ri/lee_ws/kitti_sample/000000.png")
     bboxes = [[100, 200, 50, 100], [300, 400, 100, 200]]
     classes = [3, 4]
     scores = [0.8, 0.1]
-    vis_log(sample_image, bboxes, classes, scores, result_path)
+    vis_log(sample_image, bboxes, classes, scores)
 
 
 if __name__ == "__main__":
-    # visual_test()
+    visual_test()
     time_test()
