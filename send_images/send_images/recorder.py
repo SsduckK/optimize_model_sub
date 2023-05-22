@@ -5,6 +5,7 @@ import cv2
 import time
 import csv
 import datetime
+import json
 
 
 class TimeLogger:
@@ -55,11 +56,19 @@ class VisualLogger:
         src_img = image.copy()
         for box, cls, score in zip(bboxes, classes, scores):
             score = round(score, 3)
+            converted_cls = self.convert_class(cls)
             cls_score = str(cls) + "/" + str(score)
             dst_img = cv2.rectangle(src_img, (int(box[0]), int(box[1])),
                                     (int(box[2]), int(box[3])), (0, 255, 0), 2)
             dst_img = cv2.putText(dst_img, cls_score, (int(box[0]), int(box[1]) + 10), cv2.FONT_ITALIC, 0.35, (0, 255, 0))
         return dst_img
+
+    def convert_class(self, cls):
+        with open("coco_categories.json") as f:
+            file = json.load(f)
+            index = cls+1
+            return file[index]["supercategory"]
+
 
     def save_image(self, path, image):
         cv2.imwrite(path+str(time.time()) + ".png", image)
