@@ -23,15 +23,17 @@ class TimeLogger:
         self.frames += 1
 
     def load_entry(self):
-        entry = ["frames", "sending", "before model", "after model", "receiving", "|", "send_bmodel", "bmodel_amodel", "amodel_receive"]
+        entry = ["frames", "sending", "before model", "after model", "receiving", "|",
+                 "send_bmodel", "bmodel_amodel", "amodel_receive", "summary"]
         return entry
 
     def setting_database(self, frame, timestamp):
-        send_bmodel = timestamp[0] - timestamp[1]
-        bmodel_amodel = timestamp[1] - timestamp[2]
-        amodel_receive = timestamp[2] - timestamp[3]
+        send_bmodel = timestamp[1] - timestamp[0]
+        bmodel_amodel = timestamp[2] - timestamp[1]
+        amodel_receive = timestamp[3] - timestamp[2]
+        summary = send_bmodel + bmodel_amodel + amodel_receive
         timestamp.insert(0, frame)
-        timestamp.extend(['|', send_bmodel, bmodel_amodel, amodel_receive])
+        timestamp.extend(['|', send_bmodel, bmodel_amodel, amodel_receive, summary])
         return timestamp
 
     def saving_data(self):
@@ -39,6 +41,7 @@ class TimeLogger:
             writer = csv.writer(f)
             for frame in self.time_logs:
                 writer.writerow(frame)
+        print("saved data")
 
 
 class VisualLogger:
@@ -46,8 +49,6 @@ class VisualLogger:
         if not op.exists(path):
             os.mkdir(path)
         drawn_image = self.draw_annotation(image, bboxes, classes, scores)
-        cv2.imshow("image", drawn_image)
-        cv2.waitKey(10)
         self.save_image(path, drawn_image)
 
     def draw_annotation(self, image, bboxes, classes, scores):
@@ -87,5 +88,5 @@ def visual_test():
 
 
 if __name__ == "__main__":
-    visual_test()
+    # visual_test()
     time_test()

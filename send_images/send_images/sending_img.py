@@ -21,7 +21,7 @@ class ImageProcessor(Node):
     def __init__(self, image_path, result_path):
         super().__init__("image_processor")
         self.result_path = result_path
-        self.time_logger = TL()
+        self.time_logger = TL(self.result_path)
         self.visual_logger = VL()
         self.image_list = self.load_images(image_path)
         self.image_len = len(self.image_list)
@@ -47,15 +47,14 @@ class ImageProcessor(Node):
         img_time_msg.timestamp = [sending_time]
         self.image_publisher.publish(img_time_msg)
         self.image_with_timestamp[sending_time] = image
-        cv2.imshow("publish image", image)
-        cv2.waitKey(20)
         self.count += 1
         if self.count > self.image_len-1:
             self.count = 0
 
     def subscribe_result(self, result):
         receive_time = time.time()
-        total_time = result.timestamp
+        total_time = list(result.timestamp)
+        total_time.extend([receive_time])
         matched_image = self.get_matched_image(total_time[0])
         bboxes_bytes = result.bboxes
         classes_bytes = result.classes
@@ -64,7 +63,8 @@ class ImageProcessor(Node):
         bboxes = bboxes.reshape(-1, 4)
         classes = np.frombuffer(bytes(list(classes_bytes)), np.int64)
         scores = np.frombuffer(bytes(list(scores_bytes)), np.float32)
-        self.visual_logger(matched_image, bboxes, classes, scores, self.result_path+"/vis/")
+        self.visual_logger(matched_image, bboxes, classes, scores, self.result_path+"vis/")
+        self.time_logger(total_time)
 
     def get_matched_image(self, timestamp):
         if timestamp in self.image_with_timestamp.keys():
@@ -75,12 +75,13 @@ class ImageProcessor(Node):
 
 def main(args=None):
     image_path = "/home/ri/lee_ws/kitti_sample"
-    result_path = "/home/ri/lee_ws/ros/src/optimize_model_sub/send_images/result"
+    result_path = "/home/ri/lee_ws/ros/src/optimize_model_sub/send_images/result/"
     rclpy.init(args=args)
     node = ImageProcessor(image_path, result_path)
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
+        node.time_logger.saving_data()
         node.get_logger().info('Keyboard Interrupt (SIGINT')
     finally:
         node.destroy_node()
