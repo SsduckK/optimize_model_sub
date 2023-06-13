@@ -30,8 +30,7 @@ class ImageProcessor(Node):
         self.image_publisher = self.create_publisher(Imagetime, "sending_image", 10)
         self.result_subscriber = self.create_subscription(Result, "sending_result", self.subscribe_result, 10)
         time_period = 10
-        for image in self.image_list:
-            self.create_timer(time_period, self.time_callback)
+        self.create_timer(time_period, self.time_callback)
 
     def load_images(self, image_path):
         image_list = glob(op.join(image_path, "*.png"))
